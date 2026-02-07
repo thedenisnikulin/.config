@@ -1,0 +1,7 @@
+active_profile = ""
+repo_path = "/Users/denisnikulin/.config/dotstate/storage"
+repo_name = "dotstate-storage"
+default_branch = "main"
+backup_enabled = true
+profile_activated = true
+custom_files = []

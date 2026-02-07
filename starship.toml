@@ -1,0 +1,21 @@
+[character]
+# success_symbol = '[>](bold green)'
+# error_symbol = '[>](bold red)'
+# vimcmd_symbol = '[N](bold purple)'
+success_symbol = '[~](bold green) 🌿'
+error_symbol = '[~](bold red) 🌿'
+# vimcmd_symbol = '[N](bold purple) 🍁'
+vicmd_symbol = '[N](bold purple) 🍁'
+
+[direnv]
+disabled = false
+format = "[\\[direnv\\]]($style) "
+style = 'yellow dimmed'
+
+[directory]
+truncation_length = 3
+truncate_to_repo = false
+truncation_symbol = ".../"
+
+[shell]
+disabled = false

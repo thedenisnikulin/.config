@@ -1,0 +1,67 @@
+# Mole Cleanup Preview - 2025-12-26 22:01:02
+#
+# How to protect files:
+# 1. Copy any path below to ~/.config/mole/whitelist
+# 2. Run: mo clean --whitelist
+#
+# Example:
+#   /Users/*/Library/Caches/com.example.app
+#
+
+
+=== User essentials ===
+/Users/denisnikulin/Library/Caches  # 4.33GB (58 items)
+/Users/denisnikulin/Library/Logs  # 208.3MB (22 items)
+
+=== Finder metadata ===
+
+=== macOS system caches ===
+/Users/denisnikulin/Downloads/Alacritty-v0.16.1.dmg.download  # 16KB
+
+=== Sandboxed app caches ===
+
+=== Browsers ===
+/Users/denisnikulin/Library/Caches/Google/Chrome/Default  # 1.66GB
+/Users/denisnikulin/Library/Application Support/Google/Chrome/Default/GPUCache  # 5.6MB (7 items)
+
+=== Cloud storage ===
+
+=== Office applications ===
+
+=== Developer tools ===
+/Users/denisnikulin/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f  # 132.7MB
+/Users/denisnikulin/Library/Caches/com.tinyapp.TablePlus  # 136KB (3 items)
+/Users/denisnikulin/Library/Caches/SentryCrash  # 32KB (8 items)
+/Users/denisnikulin/Library/Caches/Homebrew  # 1.11GB (7 items)
+
+=== Development applications ===
+/Users/denisnikulin/Library/Caches/com.openai.chat  # 6.9MB (11 items)
+/Users/denisnikulin/Library/Caches/com.anthropic.claudefordesktop  # 340KB (3 items)
+/Users/denisnikulin/Library/Logs/Claude  # 1.9MB (6 items)
+/Users/denisnikulin/Library/Caches/com.raycast.macos  # 24.6MB (7 items)
+/Users/denisnikulin/Library/Caches/com.apple.TV  # 8.5MB (5 items)
+/Users/denisnikulin  # 220KB (3 items)
+
+=== Virtual machine tools ===
+
+=== Application Support ===
+
+=== Uninstalled app data ===
+/Users/denisnikulin/Library/Caches/com.google.GoogleUpdater  # 852KB
+/Users/denisnikulin/Library/HTTPStorages/com.google.GoogleUpdater  # 4.0MB
+/Users/denisnikulin/Library/HTTPStorages/com.nvidia.nvcontainer  # 100KB
+/Users/denisnikulin/Library/HTTPStorages/com.openai.atlas  # 488KB
+/Users/denisnikulin/Library/HTTPStorages/com.villow.wgt  # 64KB
+
+=== Apple Silicon updates ===
+
+=== iOS device backups ===
+
+=== Time Machine incomplete backups ===
+
+# ============================================
+# Summary
+# ============================================
+# Potential cleanup: 7.74GB
+# Items: 171
+# Categories: 22
