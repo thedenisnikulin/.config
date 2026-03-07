@@ -7,12 +7,21 @@ language-servers = [ "marksman", "harper-ls" ]
 auto-format = true # optional, enable format-on-save
 
 [[language]]
+name = "toml"
+language-servers = [ "tombi" ]
+roots = ["."] # some taplo issue workaround, see https://github.com/tamasfe/taplo/issues/320
+
+[[language]]
 name = "sql"
 formatter = { command = "sleek" }
 
 [[language]]
 name = "json"
 formatter = { command = "jq" }
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
 
 [language-server.iwe]
 command = "iwes"

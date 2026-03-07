@@ -1,6 +1,6 @@
 # theme = "gruvbox_light_soft"
 # theme = "rose_pine"
-theme = "kinda_nvim"
+theme = "kinda_nvim_patched"
 # theme = "material_deep_ocean"
 # theme = "material_oceanic"
 # theme = "noctis"
