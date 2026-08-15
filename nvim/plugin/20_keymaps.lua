@@ -306,16 +306,20 @@ xmap_leader('gs', '<Cmd>lua MiniGit.show_at_cursor()<CR>', 'Show at selection')
 -- NOTE: most LSP mappings represent a more structured way of replacing built-in
 -- LSP mappings (like `:h gra` and others). This is needed because `gr` is mapped
 -- by an "replace" operator in 'mini.operators' (which is more commonly used).
-nmap_leader('la', '<Cmd>lua vim.lsp.buf.code_action()<CR>',     'Actions')
-nmap_leader('ld', '<Cmd>lua vim.diagnostic.open_float()<CR>',   'Diagnostic popup')
-nmap_leader('lf', '<Cmd>lua require("conform").format()<CR>',   'Format')
-nmap_leader('li', '<Cmd>lua vim.lsp.buf.implementation()<CR>',  'Implementation')
-nmap_leader('lh', '<Cmd>lua vim.lsp.buf.hover()<CR>',           'Hover')
-nmap_leader('ll', '<Cmd>lua vim.lsp.codelens.run()<CR>',        'Lens')
-nmap_leader('lr', '<Cmd>lua vim.lsp.buf.rename()<CR>',          'Rename')
-nmap_leader('lR', '<Cmd>lua vim.lsp.buf.references()<CR>',      'References')
-nmap_leader('ls', '<Cmd>lua vim.lsp.buf.definition()<CR>',      'Source definition')
-nmap_leader('lt', '<Cmd>lua vim.lsp.buf.type_definition()<CR>', 'Type definition')
+-- The location-returning ones go through 'mini.pick', exactly like their `g`
+-- equivalents above. Calling `vim.lsp.buf.*` directly would send multiple
+-- results to the quickfix list instead, so the same action would show up in
+-- two different UIs depending on which key you reached for.
+nmap_leader('la', '<Cmd>lua vim.lsp.buf.code_action()<CR>',   'Actions')
+nmap_leader('ld', '<Cmd>lua vim.diagnostic.open_float()<CR>', 'Diagnostic popup')
+nmap_leader('lf', '<Cmd>lua require("conform").format()<CR>', 'Format')
+nmap_leader('li', '<Cmd>Pick lsp scope="implementation"<CR>', 'Implementation')
+nmap_leader('lh', '<Cmd>lua vim.lsp.buf.hover()<CR>',         'Hover')
+nmap_leader('ll', '<Cmd>lua vim.lsp.codelens.run()<CR>',      'Lens')
+nmap_leader('lr', '<Cmd>lua vim.lsp.buf.rename()<CR>',        'Rename')
+nmap_leader('lR', '<Cmd>Pick lsp scope="references"<CR>',     'References')
+nmap_leader('ls', '<Cmd>Pick lsp scope="definition"<CR>',     'Source definition')
+nmap_leader('lt', '<Cmd>Pick lsp scope="type_definition"<CR>','Type definition')
 
 xmap_leader('lf', '<Cmd>lua require("conform").format()<CR>', 'Format selection')
 
