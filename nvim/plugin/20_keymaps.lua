@@ -262,6 +262,11 @@ nmap_leader('lt', '<Cmd>lua vim.lsp.buf.type_definition()<CR>', 'Type definition
 
 xmap_leader('lf', '<Cmd>lua require("conform").format()<CR>', 'Format selection')
 
+-- Helix leftover: `space k` showed documentation for the symbol under cursor.
+-- Same action as `<Leader>lh` above. Note that plain `K` also does this - it is
+-- a built-in LSP mapping in Neovim 0.11+, no config needed (see `:h K`).
+nmap_leader('k', '<Cmd>lua vim.lsp.buf.hover()<CR>', 'Hover docs')
+
 -- m is for 'Map'. Common usage:
 -- - `<Leader>mt` - toggle map from 'mini.map' (closed by default)
 -- - `<Leader>mf` - focus on the map for fast navigation

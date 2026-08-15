@@ -137,7 +137,65 @@ now(function() require('mini.starter').setup() end)
 -- See also:
 -- - `:h MiniStatusline-example-content` - example of default content. Use it to
 --   configure a custom statusline by setting `config.content.active` function.
-now(function() require('mini.statusline').setup() end)
+now(function()
+  local statusline = require('mini.statusline')
+
+  -- Kaomoji mode indicators, carried over from `[editor.statusline]` in Helix.
+  --
+  -- Helix has three modes and you named all three. Vim has more, so Replace,
+  -- Command and Terminal keep the plain names 'mini.statusline' gives them.
+  -- Visual, Visual Line, Visual Block and the Select modes all map to the Helix
+  -- "select" face, since Helix's Select mode is what `v` gets you here.
+  --
+  -- Keys are the return values of `:h mode()`. '\22' is <C-v> (Visual Block)
+  -- and '\19' is <C-s> (Select Block).
+  local select_face = 'S (｡•̀ᴗ-)✧☆*:・ﾟ'
+  local mode_faces = {
+    n = 'N („• ᴗ •„)',
+    i = 'I ｡ﾟ･ (>﹏<) ･ﾟ｡',
+    v = select_face,
+    V = select_face,
+    ['\22'] = select_face,
+    s = select_face,
+    S = select_face,
+    ['\19'] = select_face,
+  }
+
+  statusline.setup({
+    content = {
+      -- This is the default content function (`:h MiniStatusline-example-content`)
+      -- with exactly one change: the mode section shows a face.
+      active = function()
+        local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })
+
+        -- Faces are wide. In a narrow window `section_mode` already returns the
+        -- short name ('N', 'I', 'V'), so leave it alone and keep the room.
+        if not statusline.is_truncated(120) then
+          mode = mode_faces[vim.fn.mode()] or mode
+        end
+
+        local git = statusline.section_git({ trunc_width = 40 })
+        local diff = statusline.section_diff({ trunc_width = 75 })
+        local diagnostics = statusline.section_diagnostics({ trunc_width = 75 })
+        local lsp = statusline.section_lsp({ trunc_width = 75 })
+        local filename = statusline.section_filename({ trunc_width = 140 })
+        local fileinfo = statusline.section_fileinfo({ trunc_width = 120 })
+        local location = statusline.section_location({ trunc_width = 75 })
+        local search = statusline.section_searchcount({ trunc_width = 75 })
+
+        return statusline.combine_groups({
+          { hl = mode_hl, strings = { mode } },
+          { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },
+          '%<', -- Mark general truncate point
+          { hl = 'MiniStatuslineFilename', strings = { filename } },
+          '%=', -- End left alignment
+          { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
+          { hl = mode_hl, strings = { search, location } },
+        })
+      end,
+    },
+  })
+end)
 
 -- Tabline. Sets `:h 'tabline'` to show all listed buffers in a line at the top.
 -- Buffers are ordered as they were created. Navigate with `[b` and `]b`.
@@ -417,6 +475,12 @@ later(function()
       { mode =   'n',        keys = '<C-w>' },    -- Window commands
       { mode = { 'n', 'x' }, keys = 's' },        -- `s` key (mini.surround, etc.)
       { mode = { 'n', 'x' }, keys = 'z' },        -- `z` key
+    },
+    window = {
+      -- Show the clue window immediately instead of after 1000ms.
+      -- If this ends up flickering on keys you type fluently (`g`, `s`, `[`),
+      -- a small value like 200 keeps it near-instant without the strobe.
+      delay = 0,
     },
   })
 end)
