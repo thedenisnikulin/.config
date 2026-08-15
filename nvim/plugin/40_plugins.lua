@@ -219,7 +219,7 @@ later(function() add({ 'https://github.com/rafamadriz/friendly-snippets' }) end)
 -- closest equivalent: real cursors that run normal Vim verbs in parallel.
 --
 -- Helix -> here:
--- - `C` / `A-C`  (cursor below/above)      -> `<C-Down>` / `<C-Up>`
+-- - `C` / `A-C`  (cursor below/above)      -> `<A-Down>` / `<A-Up>`
 -- - `C` on a word (next occurrence)        -> `<C-n>`, skip one with `<C-x>`
 -- - `%` then `s` (all matches in file)     -> `<Leader>xa`
 -- - `s` (matches inside selection)         -> `<Leader>xm`
@@ -242,8 +242,12 @@ later(function()
   end
   local nx = { 'n', 'x' }
 
-  map(nx, '<C-Down>', function() mc.lineAddCursor(1) end, 'Add cursor below')
-  map(nx, '<C-Up>', function() mc.lineAddCursor(-1) end, 'Add cursor above')
+  -- Alt, not Ctrl: macOS binds Ctrl+arrows to Mission Control, App Exposé and
+  -- space switching, so Ctrl+Up/Down never reach the terminal at all. Alt gets
+  -- through because Ghostty is configured with `macos-option-as-alt = true`.
+  -- Alt+j/k would read better but belong to 'mini.move' (move line up/down).
+  map(nx, '<A-Down>', function() mc.lineAddCursor(1) end, 'Add cursor below')
+  map(nx, '<A-Up>', function() mc.lineAddCursor(-1) end, 'Add cursor above')
   map(nx, '<C-n>', function() mc.matchAddCursor(1) end, 'Add cursor at next match')
   map(nx, '<C-x>', function() mc.matchSkipCursor(1) end, 'Skip to next match')
 
