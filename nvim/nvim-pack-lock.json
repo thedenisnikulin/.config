@@ -1,0 +1,38 @@
+{
+  "plugins": {
+    "conform.nvim": {
+      "rev": "016802de402556da54c36bd7359b441266b01cdd",
+      "src": "https://github.com/stevearc/conform.nvim"
+    },
+    "kinda_nvim": {
+      "rev": "c76f0db80068b4fe37d1aa358ec0ef435f44936d",
+      "src": "https://github.com/strash/kinda_nvim"
+    },
+    "mini.nvim": {
+      "rev": "f66a0ef2fd7cf7a018778d81066297b7f909aa4a",
+      "src": "https://github.com/echasnovski/mini.nvim"
+    },
+    "multicursor.nvim": {
+      "rev": "704b99f10a72cc05d370cfeb294ff83412a8ab55",
+      "src": "https://github.com/jake-stewart/multicursor.nvim",
+      "version": "'1.0'"
+    },
+    "nvim-lspconfig": {
+      "rev": "51dbf5359da86721662c87ca10eb73add973737b",
+      "src": "https://github.com/neovim/nvim-lspconfig"
+    },
+    "nvim-treesitter": {
+      "rev": "074aa4422bf029908338e855d0c0f71470a971bb",
+      "src": "https://github.com/nvim-treesitter/nvim-treesitter",
+      "version": "'main'"
+    },
+    "render-markdown.nvim": {
+      "rev": "4663eb3ecd538bd5062628fb6d95bbe6bdca78f6",
+      "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
+    },
+    "rose-pine": {
+      "rev": "ff483051a47e27d84bdef47703538df1ed9f4a47",
+      "src": "https://github.com/rose-pine/neovim"
+    }
+  }
+}
