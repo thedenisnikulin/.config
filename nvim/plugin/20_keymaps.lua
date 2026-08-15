@@ -34,19 +34,16 @@ nmap(']p', '<Cmd>exe "iput "  . v:register<CR>', 'Paste Below')
 -- - `space m` (soft wrap toggle)     -> `\w` from 'mini.basics' toggles 'wrap'.
 -- - `<A-w>` / `<A-e>` / `<A-b>` (sub word motions) - these need a plugin to
 --   work properly, so they live in 'plugin/40_plugins.lua' with 'nvim-spider'.
+--
+-- Deliberately NOT ported, because shadowing a core Vim key is not worth it:
+-- - `x` / `X` (Helix `select_line_below` / `select_line_above`). These are
+--   Vim's delete-character keys and `x` deletes the selection in Visual mode.
+--   Use `V` to select a line and `j` / `k` to extend, which is the same number
+--   of keystrokes.
 
 local map = function(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
-
--- `x` extends the selection line-wise downward, `X` upward. In Normal mode both
--- start a line-wise selection, which is what Helix's `select_line_below` does.
--- Note this shadows Vim's `x` ("delete character") - use `dl`, or just `d`,
--- which is what you were already doing in Helix.
-map('n', 'x', 'V', 'Select line below')
-map('x', 'x', 'j', 'Extend selection down')
-map('n', 'X', 'V', 'Select line above')
-map('x', 'X', 'k', 'Extend selection up')
 
 -- The `g` goto family, as in Helix.
 --
