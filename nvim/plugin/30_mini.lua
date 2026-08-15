@@ -291,8 +291,20 @@ end)
 -- - `:h MiniFiles-manipulation` - more details about how to manipulate
 -- - `:h MiniFiles-examples` - examples of common setups
 now_if_args(function()
-  -- Enable directory/file preview
-  require('mini.files').setup({ windows = { preview = true } })
+  -- Enable directory/file preview.
+  --
+  -- Widths are in columns. The defaults (focus 50, preview 25) make the preview
+  -- too narrow to read code in, so the numbers are rebalanced: a narrower list
+  -- of names, a much wider preview. Together they stay under 140 columns, so
+  -- three panes still fit side by side on a normal terminal.
+  require('mini.files').setup({
+    windows = {
+      preview = true,
+      width_focus = 35,
+      width_nofocus = 20,
+      width_preview = 80,
+    },
+  })
 
   -- Add common bookmarks for every explorer. Example usage inside explorer:
   -- - `'c` to navigate into your config directory
@@ -481,6 +493,11 @@ later(function()
       -- If this ends up flickering on keys you type fluently (`g`, `s`, `[`),
       -- a small value like 200 keeps it near-instant without the strobe.
       delay = 0,
+      config = {
+        -- Fit the window to its widest entry. The default is a fixed 30
+        -- columns, which truncates the longer descriptions.
+        width = 'auto',
+      },
     },
   })
 end)
@@ -840,6 +857,32 @@ later(function()
   -- 'mini.completion' menu. This requires a dedicated in-process LSP server
   -- that will provide them. To have that, uncomment next line (use `gcc`).
   -- MiniSnippets.start_lsp_server()
+
+  -- Stop every snippet session as soon as you leave Insert mode.
+  --
+  -- Why this exists: completing a function from a language server inserts an
+  -- LSP snippet, which starts a session and marks its empty tabstops with
+  -- inline virtual text - '•' for regular, '∎' for the final one. That text is
+  -- not in the buffer, so deleting the line does not remove it; only stopping
+  -- the session does. By default a session only auto-stops when the *final*
+  -- tabstop is the current one, which leaves the markers hanging around after
+  -- you have moved on.
+  --
+  -- Since jumping between tabstops never leaves Insert mode, "left Insert mode"
+  -- is a reliable "I am done with this snippet".
+  --
+  -- This is the `MiniSnippets-examples` recipe "Stop all sessions on Normal
+  -- mode exit" verbatim. `<C-c>` still stops a session manually.
+  local stop_all = function()
+    local opts = { pattern = '*:n', once = true }
+    opts.callback = function()
+      while MiniSnippets.session.get() do
+        MiniSnippets.session.stop()
+      end
+    end
+    vim.api.nvim_create_autocmd('ModeChanged', opts)
+  end
+  Config.new_autocmd('User', 'MiniSnippetsSessionStart', stop_all, 'Stop snippets on Normal mode')
 end)
 
 -- Split and join arguments (regions inside brackets between allowed separators).

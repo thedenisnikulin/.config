@@ -48,9 +48,52 @@ map('x', 'x', 'j', 'Extend selection down')
 map('n', 'X', 'V', 'Select line above')
 map('x', 'X', 'k', 'Extend selection up')
 
+-- The `g` goto family, as in Helix.
+--
+-- These are not Vim defaults and are not provided by the LSP client either:
+-- - Vim's own `gd` means "go to local declaration" - a text search within the
+--   current function. That is why it never jumped into the standard library.
+-- - Neovim 0.11+ does ship built-in LSP mappings, but they live under `gr`
+--   (`grr` references, `gri` implementation, `grn` rename, `grt` type). In this
+--   config `gr` is taken by the "replace" operator from 'mini.operators', so
+--   those are shadowed - use the `<Leader>l` group for the rest.
+--
+-- Requires an attached language server; without one they report as much.
+map('n', 'gd', vim.lsp.buf.definition, 'Goto definition')
+map('n', 'gD', vim.lsp.buf.declaration, 'Goto declaration')
+map('n', 'gy', vim.lsp.buf.type_definition, 'Goto type definition')
+map('n', 'gi', vim.lsp.buf.implementation, 'Goto implementation')
+
 -- Scroll three lines at a time
 map({ 'n', 'x' }, '<C-e>', '3<C-e>', 'Scroll down')
 map({ 'n', 'x' }, '<C-y>', '3<C-y>', 'Scroll up')
+
+-- Scroll the hover/documentation float with <C-d> / <C-u>.
+--
+-- Hover output (`K`, `<Leader>k`) opens a floating window that the cursor is
+-- not inside, so plain <C-d> scrolls the buffer underneath instead. This sends
+-- the scroll to the float when one is open, and behaves normally otherwise.
+--
+-- Alternative without any mapping: press `K` a second time to jump *into* the
+-- hover window, then scroll and close it with `q`.
+--
+-- `vim.b.lsp_floating_preview` is set by Neovim to the window id of the hover
+-- float belonging to this buffer (see `:h vim.lsp.util.open_floating_preview()`).
+-- Keying off it rather than "any floating window" means pickers, notifications
+-- and the clue window keep their own scrolling.
+local scroll_float = function(key)
+  local keys = vim.api.nvim_replace_termcodes(key, true, false, true)
+  return function()
+    local win = vim.b.lsp_floating_preview
+    if win ~= nil and vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_call(win, function() vim.cmd('normal! ' .. keys) end)
+    else
+      vim.cmd('normal! ' .. keys)
+    end
+  end
+end
+map('n', '<C-d>', scroll_float('<C-d>'), 'Scroll down (float aware)')
+map('n', '<C-u>', scroll_float('<C-u>'), 'Scroll up (float aware)')
 
 -- Cycle buffers. `[b` / `]b` from 'mini.bracketed' do the same thing.
 map('n', '<A-[>', '<Cmd>bprevious<CR>', 'Previous buffer')
@@ -107,9 +150,9 @@ Config.leader_group_clues = {
   { mode = 'n', keys = '<Leader>l', desc = '+Language' },
   { mode = 'n', keys = '<Leader>m', desc = '+Map' },
   { mode = 'n', keys = '<Leader>o', desc = '+Other' },
-  { mode = 'n', keys = '<Leader>s', desc = '+Session' },
   { mode = 'n', keys = '<Leader>t', desc = '+Terminal' },
   { mode = 'n', keys = '<Leader>v', desc = '+Visits' },
+  { mode = 'n', keys = '<Leader>w', desc = '+Workspace' },
   { mode = 'n', keys = '<Leader>x', desc = '+Multicursor' },
 
   { mode = 'x', keys = '<Leader>g', desc = '+Git' },
@@ -284,17 +327,24 @@ nmap_leader('or', '<Cmd>lua MiniMisc.resize_window()<CR>', 'Resize to default wi
 nmap_leader('ot', '<Cmd>lua MiniTrailspace.trim()<CR>',    'Trim trailspace')
 nmap_leader('oz', '<Cmd>lua MiniMisc.zoom()<CR>',          'Zoom toggle')
 
--- s is for 'Session'. Common usage:
--- - `<Leader>sn` - start new session
--- - `<Leader>sr` - read previously started session
--- - `<Leader>sR` - restart Neovim preserving current session
+-- s is for 'Symbols', as in Helix: `space s` for this file, `space S` for the
+-- whole workspace. These are single actions, not groups.
+-- The same pickers also live at `<Leader>fS` / `<Leader>fs` in the Find group.
+nmap_leader('s', '<Cmd>Pick lsp scope="document_symbol"<CR>', 'Symbols document')
+nmap_leader('S', pick_workspace_symbols_live,                 'Symbols workspace')
+
+-- w is for 'Workspace', which is where sessions moved to when `<Leader>s`
+-- became Symbols. Common usage:
+-- - `<Leader>wn` - start new session
+-- - `<Leader>wr` - read previously started session
+-- - `<Leader>wR` - restart Neovim preserving current session
 local session_new = 'vim.ui.input({ prompt = "Session name: " }, MiniSessions.write)'
 
-nmap_leader('sd', '<Cmd>lua MiniSessions.select("delete")<CR>', 'Delete')
-nmap_leader('sn', '<Cmd>lua ' .. session_new .. '<CR>',         'New')
-nmap_leader('sr', '<Cmd>lua MiniSessions.select("read")<CR>',   'Read')
-nmap_leader('sR', '<Cmd>lua MiniSessions.restart()<CR>',        'Restart')
-nmap_leader('sw', '<Cmd>lua MiniSessions.write()<CR>',          'Write current')
+nmap_leader('wd', '<Cmd>lua MiniSessions.select("delete")<CR>', 'Delete')
+nmap_leader('wn', '<Cmd>lua ' .. session_new .. '<CR>',         'New')
+nmap_leader('wr', '<Cmd>lua MiniSessions.select("read")<CR>',   'Read')
+nmap_leader('wR', '<Cmd>lua MiniSessions.restart()<CR>',        'Restart')
+nmap_leader('ww', '<Cmd>lua MiniSessions.write()<CR>',          'Write current')
 
 -- t is for 'Terminal'
 nmap_leader('tT', '<Cmd>horizontal term<CR>', 'Terminal (horizontal)')
