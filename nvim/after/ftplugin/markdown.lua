@@ -18,6 +18,16 @@
 -- Enable spelling and wrap for window
 vim.cmd('setlocal spell wrap')
 
+-- Format on save, the only filetype that does. This is `auto-format = true` for
+-- markdown from 'helix/languages.toml'; everything else formats on `<Leader>lf`.
+-- Formatting comes from 'conform.nvim', which falls back to the LSP (marksman)
+-- since no dedicated markdown formatter is configured.
+vim.api.nvim_create_autocmd('BufWritePre', {
+  buffer = 0,
+  desc = 'Format markdown on save',
+  callback = function(ev) require('conform').format({ bufnr = ev.buf, lsp_format = 'fallback' }) end,
+})
+
 -- Fold with tree-sitter
 vim.cmd('setlocal foldmethod=expr foldexpr=v:lua.vim.treesitter.foldexpr()')
 

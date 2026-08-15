@@ -21,6 +21,56 @@ nmap(']p', '<Cmd>exe "iput "  . v:register<CR>', 'Paste Below')
 
 -- Many general mappings are created by 'mini.basics'. See 'plugin/30_mini.lua'
 
+-- Helix leftovers ============================================================
+--
+-- This whole section exists for one reason: a year of Helix muscle memory.
+-- Everything here is a direct port of a binding from 'helix/config.toml'.
+-- None of it is required for the config to work - delete any line that stops
+-- earning its place, the rest keeps functioning.
+--
+-- Deliberately NOT ported, because Vim already does the same thing:
+-- - `0` / `^` / `$` - identical in both editors.
+-- - `space z` (gutter width toggle)  -> `\n` from 'mini.basics' toggles numbers.
+-- - `space m` (soft wrap toggle)     -> `\w` from 'mini.basics' toggles 'wrap'.
+-- - `<A-w>` / `<A-e>` / `<A-b>` (sub word motions) - these need a plugin to
+--   work properly, so they live in 'plugin/40_plugins.lua' with 'nvim-spider'.
+
+local map = function(mode, lhs, rhs, desc)
+  vim.keymap.set(mode, lhs, rhs, { desc = desc })
+end
+
+-- `x` extends the selection line-wise downward, `X` upward. In Normal mode both
+-- start a line-wise selection, which is what Helix's `select_line_below` does.
+-- Note this shadows Vim's `x` ("delete character") - use `dl`, or just `d`,
+-- which is what you were already doing in Helix.
+map('n', 'x', 'V', 'Select line below')
+map('x', 'x', 'j', 'Extend selection down')
+map('n', 'X', 'V', 'Select line above')
+map('x', 'X', 'k', 'Extend selection up')
+
+-- Scroll three lines at a time
+map({ 'n', 'x' }, '<C-e>', '3<C-e>', 'Scroll down')
+map({ 'n', 'x' }, '<C-y>', '3<C-y>', 'Scroll up')
+
+-- Cycle buffers. `[b` / `]b` from 'mini.bracketed' do the same thing.
+map('n', '<A-[>', '<Cmd>bprevious<CR>', 'Previous buffer')
+map('n', '<A-]>', '<Cmd>bnext<CR>', 'Next buffer')
+
+-- Shell integration, the thing Helix does better than most editors.
+-- These are all built on Vim's `:!` filter (see `:h :range!`), which reads the
+-- selected range, pipes it through a command, and replaces it with the output.
+-- The shell used is bash, set in 'plugin/10_options.lua'.
+--
+-- Usage: select some lines, press `|`, type `sort -u`, press Enter.
+--
+-- These mappings intentionally leave the command line open (no `<CR>`) so you
+-- can type the command. Mapping `!` shadows Vim's filter operator (`!ap`,
+-- `!!`); the `:{range}!{cmd}` command form is unaffected and still available.
+map('x', '|', ':!', 'Pipe selection through command')
+map('x', '<A-|>', ':w !', 'Send selection to command')
+map('n', '!', ':.-1read !', 'Insert command output above')
+map('n', '<A-!>', ':read !', 'Insert command output below')
+
 -- stylua: ignore start
 -- The next part (until `-- stylua: ignore end`) is aligned manually for easier
 -- reading. Consider preserving this or remove `-- stylua` lines to autoformat.
@@ -60,9 +110,11 @@ Config.leader_group_clues = {
   { mode = 'n', keys = '<Leader>s', desc = '+Session' },
   { mode = 'n', keys = '<Leader>t', desc = '+Terminal' },
   { mode = 'n', keys = '<Leader>v', desc = '+Visits' },
+  { mode = 'n', keys = '<Leader>x', desc = '+Multicursor' },
 
   { mode = 'x', keys = '<Leader>g', desc = '+Git' },
   { mode = 'x', keys = '<Leader>l', desc = '+Language' },
+  { mode = 'x', keys = '<Leader>x', desc = '+Multicursor' },
 }
 
 -- Helpers for a more concise `<Leader>` mappings.
@@ -91,6 +143,11 @@ nmap_leader('bD', '<Cmd>lua MiniBufremove.delete(0, true)<CR>',  'Delete!')
 nmap_leader('bs', new_scratch_buffer,                            'Scratch')
 nmap_leader('bw', '<Cmd>lua MiniBufremove.wipeout()<CR>',        'Wipeout')
 nmap_leader('bW', '<Cmd>lua MiniBufremove.wipeout(0, true)<CR>', 'Wipeout!')
+
+-- Helix leftover: `space c` / `space C` were `:buffer-close` / `:buffer-close!`.
+-- Same actions as `<Leader>bd` / `<Leader>bD` above, kept as single-key aliases.
+nmap_leader('c', '<Cmd>lua MiniBufremove.delete()<CR>',         'Close buffer')
+nmap_leader('C', '<Cmd>lua MiniBufremove.delete(0, true)<CR>',  'Close buffer!')
 
 -- e is for 'Explore' and 'Edit'. Common usage:
 -- - `<Leader>ed` - open explorer at current working directory
@@ -163,8 +220,16 @@ nmap_leader('fV', '<Cmd>Pick visit_paths<CR>',                  'Visit paths (cw
 local git_log_cmd = [[Git log --pretty=format:\%h\ \%as\ │\ \%s --topo-order]]
 local git_log_buf_cmd = git_log_cmd .. ' --follow -- %'
 
+-- Helix leftover: `space B b` ran `git blame` for the line under the cursor.
+local git_blame_line = function()
+  local l, path = vim.fn.line('.'), vim.fn.fnameescape(vim.fn.expand('%:p'))
+  vim.cmd(string.format('Git blame -L %d,%d -- %s', l, l, path))
+end
+
 nmap_leader('ga', '<Cmd>Git diff --cached<CR>',             'Added diff')
 nmap_leader('gA', '<Cmd>Git diff --cached -- %<CR>',        'Added diff buffer')
+nmap_leader('gb', git_blame_line,                           'Blame line')
+nmap_leader('gB', '<Cmd>Git blame -- %<CR>',                'Blame buffer')
 nmap_leader('gc', '<Cmd>Git commit<CR>',                    'Commit')
 nmap_leader('gC', '<Cmd>Git commit --amend<CR>',            'Commit amend')
 nmap_leader('gd', '<Cmd>Git diff<CR>',                      'Diff')
@@ -208,6 +273,8 @@ nmap_leader('mt', '<Cmd>lua MiniMap.toggle()<CR>',       'Toggle')
 
 -- o is for 'Other'. Common usage:
 -- - `<Leader>oz` - toggle between "zoomed" and regular view of current buffer
+-- - `<Leader>oc` - pick a colorscheme with live preview (Helix's `:theme`)
+nmap_leader('oc', '<Cmd>Pick colorschemes<CR>',            'Colorscheme')
 nmap_leader('or', '<Cmd>lua MiniMisc.resize_window()<CR>', 'Resize to default width')
 nmap_leader('ot', '<Cmd>lua MiniTrailspace.trim()<CR>',    'Trim trailspace')
 nmap_leader('oz', '<Cmd>lua MiniMisc.zoom()<CR>',          'Zoom toggle')

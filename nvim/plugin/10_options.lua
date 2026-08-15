@@ -27,6 +27,11 @@ vim.o.mousescroll = 'ver:25,hor:6' -- Customize mouse scroll
 vim.o.switchbuf   = 'usetab'       -- Use already opened buffers when switching
 vim.o.undofile    = true           -- Enable persistent undo
 
+-- Shell used by `:!`, `:terminal`, and the `|` / `!` mappings in 20_keymaps.lua.
+-- Set to bash (not the login zsh) to match `shell = ["bash", "-c"]` from Helix,
+-- so shell one-liners behave exactly like they did there.
+vim.o.shell = 'bash'
+
 vim.o.shada = "'100,<50,s10,:1000,/100,@100,h" -- Limit ShaDa file (for startup)
 
 -- UI =========================================================================
@@ -37,6 +42,7 @@ vim.o.cursorline     = true       -- Enable current line highlighting
 vim.o.linebreak      = true       -- Wrap lines at 'breakat' (if 'wrap' is set)
 vim.o.list           = true       -- Show helpful text indicators
 vim.o.number         = true       -- Show line numbers
+vim.o.relativenumber = true       -- Number relative to cursor (toggle with \n)
 vim.o.pumborder      = 'single'   -- Use border in popup menu
 vim.o.pumheight      = 10         -- Make popup menu smaller
 vim.o.pummaxwidth    = 100        -- Make popup menu not too wide
@@ -48,9 +54,27 @@ vim.o.splitbelow     = true       -- Horizontal splits will be below
 vim.o.splitkeep      = 'screen'   -- Reduce scroll during window split
 vim.o.splitright     = true       -- Vertical splits will be to the right
 vim.o.winborder      = 'single'   -- Use border in floating windows
-vim.o.wrap           = false      -- Don't visually wrap lines (toggle with \w)
+vim.o.wrap           = true       -- Visually wrap long lines (toggle with \w)
 
 vim.o.cursorlineopt  = 'screenline,number' -- Show cursor line per screen line
+
+-- Cursor shape per mode, matching `[editor.cursor-shape]` from Helix:
+-- underline in Normal/Select, block in Insert. This is inverted from Vim's
+-- default (block in Normal), which is deliberate - it keeps the visual signal
+-- for "which mode am I in" identical to what a year of Helix trained.
+-- See `:h 'guicursor'`.
+vim.o.guicursor = 'n-v-c-sm:hor20,i-ci-ve:block,r-cr-o:hor20'
+
+-- Soft wrap. Helix wrapped at `text-width` (120); Neovim can only wrap at the
+-- window edge, so the practical equivalent is 'wrap' + 'linebreak' (break on
+-- whitespace, not mid-word) + 'breakindent' (keep the wrapped part indented).
+-- `showbreak` is empty to match `wrap-indicator = ""`.
+vim.o.showbreak = ''
+
+-- Maximum line width, from `text-width = 120`. Only affects `gq`/`gw` and the
+-- 'colorcolumn' above (drawn at 121) - text is never auto-wrapped while typing,
+-- because 'formatoptions' below deliberately omits `t`.
+vim.o.textwidth = 120
 
 -- Special UI symbols. More is set via 'mini.basics' later.
 vim.o.fillchars = 'eob: ,fold:╌'
@@ -109,11 +133,12 @@ local diagnostic_opts = {
   -- Show all diagnostics as underline (for their messages type `<Leader>ld`)
   underline = { severity = { min = 'HINT', max = 'ERROR' } },
 
-  -- Show more details immediately for errors on the current line
+  -- Show details inline for the current line only, down to hint severity.
+  -- This is `[editor.inline-diagnostics] cursor-line = "hint"` from Helix.
   virtual_lines = false,
   virtual_text = {
     current_line = true,
-    severity = { min = 'ERROR', max = 'ERROR' },
+    severity = { min = 'HINT', max = 'ERROR' },
   },
 
   -- Don't update diagnostics when typing

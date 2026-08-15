@@ -27,15 +27,28 @@
 local now, now_if_args, later = Config.now, Config.now_if_args, Config.later
 
 -- Step one ===================================================================
--- Enable 'miniwinter' color scheme. It comes with 'mini.nvim' and uses 'mini.hues'.
+-- Color scheme.
+--
+-- 'kinda_hues' is the palette you used in Helix, rebuilt with 'mini.hues'.
+-- It is defined in 'colors/kinda_hues.lua' - edit it there, that file explains
+-- where the colors come from and what is tweakable.
+--
+-- Why rebuild rather than install the original 'strash/kinda_nvim' that your
+-- Helix theme was ported from: that one defines no `Mini*` highlight groups,
+-- and this config is mostly Mini modules, so its picker, explorer, statusline
+-- and clue windows would fall back to generic colors. It can still be installed
+-- for comparison - see "Color schemes" in 'plugin/40_plugins.lua'.
+--
+-- `<Leader>oc` previews every installed scheme live, Helix `:theme` style.
 --
 -- See also:
--- - `:h mini.nvim-color-schemes` - list of other color schemes
+-- - `:h MiniHues.config` - all options
+-- - `:h mini.nvim-color-schemes` - the bundled schemes (miniwinter, randomhue, ...)
 -- - `:h MiniHues-examples` - how to define highlighting with 'mini.hues'
--- - 'plugin/40_plugins.lua' honorable mentions - other good color schemes
-now(function() vim.cmd('colorscheme miniwinter') end)
+now(function() vim.cmd('colorscheme kinda_hues') end)
 
--- You can try these other 'mini.hues'-based color schemes (uncomment with `gcc`):
+-- Bundled alternatives to try (uncomment with `gcc`, or just use `<Leader>oc`):
+-- now(function() vim.cmd('colorscheme miniwinter') end)  -- MiniMax's default
 -- now(function() vim.cmd('colorscheme minispring') end)
 -- now(function() vim.cmd('colorscheme minisummer') end)
 -- now(function() vim.cmd('colorscheme miniautumn') end)

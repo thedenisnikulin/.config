@@ -51,10 +51,27 @@ now_if_args(function()
   -- After changing this, restart Neovim once to install necessary parsers. Wait
   -- for the installation to finish before opening a file for added language(s).
   local languages = {
-    -- These are already pre-installed with Neovim. Used as an example.
+    -- These are already pre-installed with Neovim.
     'lua',
     'vimdoc',
     'markdown',
+    'markdown_inline',
+    -- Languages you actually work in
+    'go',
+    'gomod',
+    'gosum',
+    'gowork',
+    'python',
+    'rust',
+    -- Config and data formats, mirroring 'helix/languages.toml'
+    'json',
+    'sql',
+    'toml',
+    'yaml',
+    -- Shells and Git
+    'bash',
+    'diff',
+    'gitcommit',
     -- Add here more languages with which you want to use tree-sitter
     -- To see available languages:
     -- - Execute `:=require('nvim-treesitter').get_available()`
@@ -102,10 +119,24 @@ now_if_args(function()
   -- Use `:h vim.lsp.enable()` to automatically enable language server based on
   -- the rules provided by 'nvim-lspconfig'.
   -- Use `:h vim.lsp.config()` or 'after/lsp/' directory to configure servers.
-  -- Uncomment and tweak the following `vim.lsp.enable()` call to enable servers.
-  -- vim.lsp.enable({
-  --   -- For example, if `lua-language-server` is installed, use `'lua_ls'` entry
-  -- })
+  --
+  -- Every server below is installed system-wide (brew / rustup / go / uv), not
+  -- by Neovim. That is deliberate: they keep working in other editors and in
+  -- CI, and this config stays a list of names instead of a package manager.
+  -- If one goes missing, Neovim just doesn't attach it - nothing breaks.
+  --
+  -- The set mirrors 'helix/languages.toml', so the same language tooling
+  -- follows you across both editors.
+  vim.lsp.enable({
+    'lua_ls', -- lua-language-server
+    'gopls',
+    'rust_analyzer', -- via `rustup component add rust-analyzer`
+    'basedpyright', -- types
+    'ruff', -- lint + format, Python
+    'marksman', -- markdown
+    'harper_ls', -- prose linting, configured in 'after/lsp/harper_ls.lua'
+    'tombi', -- toml
+  })
 end)
 
 -- Formatting =================================================================
@@ -128,9 +159,19 @@ later(function()
       -- Allow formatting from LSP server if no dedicated formatter is available
       lsp_format = 'fallback',
     },
-    -- Map of filetype to formatters
-    -- Make sure that necessary CLI tool is available
-    -- formatters_by_ft = { lua = { 'stylua' } },
+    -- Map of filetype to formatters, ported from 'helix/languages.toml' plus
+    -- the standard formatter for each language you work in.
+    -- Each CLI tool here is installed system-wide; a missing one is skipped.
+    -- Run with `<Leader>lf`. Only markdown formats on save - see
+    -- 'after/ftplugin/markdown.lua'.
+    formatters_by_ft = {
+      lua = { 'stylua' },
+      go = { 'goimports', 'gofumpt' },
+      python = { 'ruff_organize_imports', 'ruff_format' },
+      rust = { 'rustfmt' },
+      sql = { 'sleek' },
+      json = { 'jq' },
+    },
   })
 end)
 
@@ -144,6 +185,79 @@ end)
 -- 'mini.snippets' is designed to work with it as seamlessly as possible.
 -- See `:h MiniSnippets.gen_loader.from_lang()`.
 later(function() add({ 'https://github.com/rafamadriz/friendly-snippets' }) end)
+
+-- Multiple cursors ===========================================================
+
+-- The one Helix feature MINI has no module for. 'multicursor.nvim' is the
+-- closest equivalent: real cursors that run normal Vim verbs in parallel.
+--
+-- Helix -> here:
+-- - `C` / `A-C`  (cursor below/above)      -> `<C-Down>` / `<C-Up>`
+-- - `C` on a word (next occurrence)        -> `<C-n>`, skip one with `<C-x>`
+-- - `%` then `s` (all matches in file)     -> `<Leader>xa`
+-- - `s` (matches inside selection)         -> `<Leader>xm`
+-- - `A-s` (split selection into lines)     -> `<Leader>xs`
+-- - `,` (collapse to one cursor)           -> `<Esc>`
+--
+-- `<Esc>` and the cursor-navigation keys live in a "keymap layer", which is
+-- only active while several cursors exist - so `<Esc>` keeps its normal
+-- meaning the rest of the time.
+--
+-- See also: `:h multicursor`
+later(function()
+  add({ 'https://github.com/jake-stewart/multicursor.nvim' })
+
+  local mc = require('multicursor-nvim')
+  mc.setup()
+
+  local map = function(mode, lhs, rhs, desc)
+    vim.keymap.set(mode, lhs, rhs, { desc = desc })
+  end
+  local nx = { 'n', 'x' }
+
+  map(nx, '<C-Down>', function() mc.lineAddCursor(1) end, 'Add cursor below')
+  map(nx, '<C-Up>', function() mc.lineAddCursor(-1) end, 'Add cursor above')
+  map(nx, '<C-n>', function() mc.matchAddCursor(1) end, 'Add cursor at next match')
+  map(nx, '<C-x>', function() mc.matchSkipCursor(1) end, 'Skip to next match')
+
+  map(nx, '<Leader>xa', mc.matchAllAddCursors, 'All matches in buffer')
+  map(nx, '<Leader>xm', mc.matchCursors, 'Match inside selection')
+  map(nx, '<Leader>xs', mc.splitCursors, 'Split selection into cursors')
+
+  -- Only in effect while there is more than one cursor
+  mc.addKeymapLayer(function(layer)
+    layer(nx, '<Left>', mc.prevCursor, 'Previous cursor')
+    layer(nx, '<Right>', mc.nextCursor, 'Next cursor')
+    layer('n', '<Esc>', function()
+      if mc.cursorsEnabled() then
+        mc.clearCursors()
+      else
+        mc.enableCursors()
+      end
+    end, 'Collapse to one cursor')
+  end)
+end)
+
+-- Sub word motions ===========================================================
+
+-- Your `<A-w>` / `<A-e>` / `<A-b>` bindings from Helix: move by parts of
+-- camelCase and snake_case words instead of whole words.
+--
+-- This is the smallest plugin in the config and exists purely for these three
+-- keys. If they stop being worth a dependency, delete this whole block - plain
+-- `w` / `e` / `b` keep working, they were never remapped.
+--
+-- NOTE: mapped as `<Cmd>` strings rather than Lua functions, which is what
+-- makes dot-repeat work. See the plugin's readme.
+later(function()
+  add({ 'https://github.com/chrisgrieser/nvim-spider' })
+
+  local modes = { 'n', 'o', 'x' }
+  local motion = function(key) return "<Cmd>lua require('spider').motion('" .. key .. "')<CR>" end
+  vim.keymap.set(modes, '<A-w>', motion('w'), { desc = 'Sub word forward' })
+  vim.keymap.set(modes, '<A-e>', motion('e'), { desc = 'Sub word end' })
+  vim.keymap.set(modes, '<A-b>', motion('b'), { desc = 'Sub word back' })
+end)
 
 -- Honorable mentions =========================================================
 
@@ -160,9 +274,25 @@ later(function() add({ 'https://github.com/rafamadriz/friendly-snippets' }) end)
 --   require('mason').setup()
 -- end)
 
--- Beautiful, usable, well maintained color schemes outside of 'mini.nvim' and
--- have full support of its highlight groups. Use if you don't like 'miniwinter'
--- enabled in 'plugin/30_mini.lua' or other suggested 'mini.hues' based ones.
+-- Color schemes ==============================================================
+
+-- 'strash/kinda_nvim' is the Neovim original that your Helix theme
+-- ('kinda_nvim_patched') was ported from. The active color scheme is a
+-- 'mini.hues' rebuild of the same palette - see 'plugin/30_mini.lua' for why.
+--
+-- Uncomment to install it and compare the two. Once installed, `<Leader>oc`
+-- previews both live; whichever `colorscheme` call runs last in config wins on
+-- the next startup.
+--
+-- Heads up: it defines no `Mini*` highlight groups, so Mini windows (picker,
+-- explorer, statusline, clue) fall back to generic colors under it.
+-- Config.now(function()
+--   add({ 'https://github.com/strash/kinda_nvim' })
+--   vim.cmd('colorscheme kinda_nvim')
+-- end)
+
+-- Other well maintained color schemes outside of 'mini.nvim' that have full
+-- support of its highlight groups.
 -- Config.now(function()
 --  -- Install only those that you need
 --  add({
