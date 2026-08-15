@@ -248,8 +248,11 @@ later(function()
   map(nx, '<C-x>', function() mc.matchSkipCursor(1) end, 'Skip to next match')
 
   map(nx, '<Leader>xa', mc.matchAllAddCursors, 'All matches in buffer')
-  map(nx, '<Leader>xm', mc.matchCursors, 'Match inside selection')
-  map(nx, '<Leader>xs', mc.splitCursors, 'Split selection into cursors')
+
+  -- Visual mode only - both ask for a pattern and act on the selection.
+  -- `xm` puts a cursor on each match inside it; `xs` splits it on a separator.
+  map('x', '<Leader>xm', mc.matchCursors, 'Match inside selection')
+  map('x', '<Leader>xs', mc.splitCursors, 'Split selection on separator')
 
   -- Only in effect while there is more than one cursor
   mc.addKeymapLayer(function(layer)
