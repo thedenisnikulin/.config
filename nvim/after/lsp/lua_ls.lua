@@ -12,7 +12,9 @@
 -- basic config and can be further improved.
 return {
   on_attach = function(client, buf_id)
-    -- Reduce very long list of triggers for better 'mini.completion' experience
+    -- Reduce a very long list of trigger characters. With autotriggered
+    -- completion these decide when the menu pops up on its own, and lua_ls
+    -- declares far too many (every letter), which fires it constantly.
     client.server_capabilities.completionProvider.triggerCharacters =
       { '.', ':', '#', '(' }
 

@@ -95,7 +95,8 @@ now(function()
   -- Not needed for 'mini.nvim' or MiniMax, but might be useful for others.
   later(MiniIcons.mock_nvim_web_devicons)
 
-  -- Add LSP kind icons. Useful for 'mini.completion'.
+  -- Add icons to LSP kinds ("Function", "Variable", ...). Shows up in the
+  -- completion menu and in LSP pickers like `<Leader>s`.
   later(MiniIcons.tweak_lsp_kind)
 end)
 
@@ -205,61 +206,15 @@ now(function() require('mini.tabline').setup() end)
 -- Load now if Neovim is started like `nvim -- path/to/file`, otherwise - later.
 -- This ensures a correct behavior for files opened during startup.
 
--- Completion and signature help. Implements async "two stage" autocompletion:
--- - Based on attached LSP servers that support completion.
--- - Fallback (based on built-in keyword completion) if there is no LSP candidates.
+-- Completion is deliberately NOT 'mini.completion'.
 --
--- Example usage in Insert mode with attached LSP:
--- - Start typing text that should be recognized by LSP (like variable name).
--- - After 100ms a popup menu with candidates appears.
--- - Press `<Tab>` / `<S-Tab>` to navigate down/up the list. These are set up
---   in 'mini.keymap'. You can also use `<C-n>` / `<C-p>`.
--- - During navigation there is an info window to the right showing extra info
---   that the LSP server can provide about the candidate. It appears after the
---   candidate stays selected for 100ms. Use `<C-f>` / `<C-b>` to scroll it.
--- - Navigating to an entry also changes buffer text. If you are happy with it,
---   keep typing after it. To discard completion completely, press `<C-e>`.
--- - After pressing special trigger(s), usually `(`, a window appears that shows
---   the signature of the current function/method. It gets updated as you type
---   showing the currently active parameter.
+-- Neovim 0.12 does LSP autocompletion itself, so this config uses that. It is
+-- enabled in 'plugin/40_plugins.lua', right next to the language servers that
+-- feed it, and that file explains what the trade costs.
 --
--- Example usage in Insert mode without an attached LSP or in places not
--- supported by the LSP (like comments):
--- - Start typing a word that is present in current or opened buffers.
--- - After 100ms popup menu with candidates appears.
--- - Navigate with `<Tab>` / `<S-Tab>` or `<C-n>` / `<C-p>`. This also updates
---   buffer text. If happy with choice, keep typing. Stop with `<C-e>`.
---
--- It also works with snippet candidates provided by LSP server. Best experience
--- when paired with 'mini.snippets' (which is set up in this file).
-now_if_args(function()
-  -- Customize post-processing of LSP responses for a better user experience.
-  -- Don't show 'Text' suggestions (usually noisy) and show snippets last.
-  local process_items_opts = { kind_priority = { Text = -1, Snippet = 99 } }
-  local process_items = function(items, base)
-    return MiniCompletion.default_process_items(items, base, process_items_opts)
-  end
-  require('mini.completion').setup({
-    lsp_completion = {
-      -- Without this config autocompletion is set up through `:h 'completefunc'`.
-      -- Although not needed, setting up through `:h 'omnifunc'` is cleaner
-      -- (sets up only when needed) and makes it possible to use `<C-u>`.
-      source_func = 'omnifunc',
-      auto_setup = false,
-      process_items = process_items,
-    },
-  })
-
-  -- Set 'omnifunc' for LSP completion only when needed.
-  local on_attach = function(ev)
-    vim.bo[ev.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'
-  end
-  Config.new_autocmd('LspAttach', nil, on_attach, "Set 'omnifunc'")
-
-  -- Advertise to servers that Neovim now supports certain set of completion and
-  -- signature features through 'mini.completion'.
-  vim.lsp.config('*', { capabilities = MiniCompletion.get_lsp_capabilities() })
-end)
+-- To go back, delete the `vim.lsp.completion.enable()` block there and
+-- uncomment the line below.
+-- now_if_args(function() require('mini.completion').setup() end)
 
 -- Navigate and manipulate file system
 --
@@ -305,6 +260,23 @@ now_if_args(function()
       width_preview = 80,
     },
   })
+
+  -- Make the explorer behave like the other popups: `<Esc>` closes it and
+  -- `<Tab>` / `<S-Tab>` move between entries.
+  --
+  -- These are buffer-local rather than set through `config.mappings`, because
+  -- that table takes exactly one key per action - going through it would mean
+  -- giving up `q` for closing and `j` / `k` for moving. This way you keep both.
+  local set_explorer_keys = function(args)
+    local buf = args.data.buf_id
+    local map = function(lhs, rhs, desc)
+      vim.keymap.set('n', lhs, rhs, { buffer = buf, desc = desc })
+    end
+    map('<Esc>', function() MiniFiles.close() end, 'Close')
+    map('<Tab>', 'j', 'Next entry')
+    map('<S-Tab>', 'k', 'Previous entry')
+  end
+  Config.new_autocmd('User', 'MiniFilesBufferCreate', set_explorer_keys, 'Explorer keys')
 
   -- Add common bookmarks for every explorer. Example usage inside explorer:
   -- - `'c` to navigate into your config directory
@@ -663,7 +635,9 @@ later(function() require('mini.jump2d').setup() end)
 -- - `:h MiniKeymap.map_combo()` - map combo
 later(function()
   require('mini.keymap').setup()
-  -- Navigate 'mini.completion' menu with `<Tab>` /  `<S-Tab>`
+  -- Navigate the completion menu with `<Tab>` / `<S-Tab>`. These act on any
+  -- popup menu (`:h popupmenu`), which is why they kept working when
+  -- 'mini.completion' was swapped for Neovim's built-in completion.
   MiniKeymap.map_multistep('i', '<Tab>', { 'pmenu_next' })
   MiniKeymap.map_multistep('i', '<S-Tab>', { 'pmenu_prev' })
   -- On `<CR>` try to accept current completion item, fall back to accounting
@@ -734,7 +708,13 @@ later(function() require('mini.move').setup() end)
 -- - `:h MiniOperators-mappings` - overview of how mappings are created
 -- - `:h MiniOperators-overview` - overview of present operators
 later(function()
-  require('mini.operators').setup()
+  require('mini.operators').setup({
+    -- The replace operator ships on `gr`, but `gr` is "goto references" in
+    -- Helix and that reflex won here (mapped in 'plugin/20_keymaps.lua').
+    -- Moved to `gR`, which costs Vim's virtual replace mode - see `:h gR`.
+    -- So: `gRiw` replaces inside word, `gRR` the current line.
+    replace = { prefix = 'gR' },
+  })
 
   -- Create mappings for swapping adjacent arguments. Notes:
   -- - Relies on `a` argument textobject from 'mini.ai'.
@@ -788,7 +768,22 @@ end)
 -- - `:h MiniPick.builtin` and `:h MiniExtra.pickers` - available pickers;
 --   Execute one either with Lua function, `:Pick <picker-name>` command, or
 --   one of `<Leader>f` mappings defined in 'plugin/20_keymaps.lua'
-later(function() require('mini.pick').setup() end)
+later(function()
+  require('mini.pick').setup({
+    mappings = {
+      -- `<Tab>` / `<S-Tab>` move through items, to match the file explorer and
+      -- the completion menu. Defaults were `<C-n>` / `<C-p>`, which are now
+      -- free (assign them here too if the muscle memory shows up).
+      move_down = '<Tab>',
+      move_up = '<S-Tab>',
+
+      -- Displaced by the above. `<Tab>` used to toggle the preview and
+      -- `<S-Tab>` the info view.
+      toggle_preview = '<C-p>',
+      toggle_info = '<C-k>',
+    },
+  })
+end)
 
 -- Manage and expand snippets (templates for a frequently used text).
 -- Typical workflow is to type snippet's (configurable) prefix and expand it
@@ -853,9 +848,13 @@ later(function()
     },
   })
 
-  -- By default snippets available at cursor are not shown as candidates in
-  -- 'mini.completion' menu. This requires a dedicated in-process LSP server
-  -- that will provide them. To have that, uncomment next line (use `gcc`).
+  -- By default snippets available at cursor are not offered in the completion
+  -- menu; expand them by typing a prefix and pressing `<C-j>`.
+  --
+  -- To get them in the menu instead, uncomment the line below (use `gcc`). It
+  -- starts an in-process LSP server that serves your snippets as completion
+  -- candidates - which works with Neovim's built-in completion just as it did
+  -- with 'mini.completion', since both are LSP based.
   -- MiniSnippets.start_lsp_server()
 
   -- Stop every snippet session as soon as you leave Insert mode.

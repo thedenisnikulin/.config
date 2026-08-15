@@ -108,9 +108,12 @@ vim.o.iskeyword = '@,48-57,_,192-255,-' -- Treat dash as `word` textobject part
 vim.o.formatlistpat = [[^\s*[0-9\-\+\*]\+[\.\)]*\s\+]]
 
 -- Built-in completion
-vim.o.complete        = '.,w,b,kspell'                  -- Use less sources
-vim.o.completeopt     = 'menuone,noselect,fuzzy,nosort' -- Use custom behavior
-vim.o.completetimeout = 100                             -- Limit sources delay
+vim.o.complete        = '.,w,b,kspell'                        -- Use less sources
+vim.o.completeopt     = 'menuone,noselect,fuzzy,nosort,popup' -- Use custom behavior
+vim.o.completetimeout = 100                                   -- Limit sources delay
+-- `popup` above shows documentation for the selected candidate in a floating
+-- window. It matters because completion here is Neovim's built-in one rather
+-- than 'mini.completion' (which drew its own info window). See 40_plugins.lua.
 
 -- Autocommands ===============================================================
 

@@ -137,6 +137,33 @@ now_if_args(function()
     'harper_ls', -- prose linting, configured in 'after/lsp/harper_ls.lua'
     'tombi', -- toml
   })
+
+  -- Completion, using Neovim's own implementation rather than a plugin.
+  --
+  -- `autotrigger` opens the popup as you type, on the trigger characters the
+  -- server declares (`.`, `:`, etc.). Without it, completion only happens on
+  -- demand via `<C-x><C-o>`.
+  --
+  -- What this gives you:
+  -- - `<Tab>` / `<S-Tab>` navigate the menu, `<CR>` accepts. Those come from
+  --   'mini.keymap' in 'plugin/30_mini.lua' and are popup-generic, so they kept
+  --   working when 'mini.completion' was removed.
+  -- - Documentation for the selected item, because 'completeopt' contains
+  --   `popup` (see 'plugin/10_options.lua').
+  -- - Signature help while typing arguments: press `<C-s>` in Insert mode,
+  --   a Neovim built-in (see `:h i_CTRL-S`).
+  -- - Snippet completions expand through built-in `:h vim.snippet`.
+  --
+  -- What you give up compared to 'mini.completion':
+  -- - No automatic fallback to buffer-word completion when the server returns
+  --   nothing. Plain `<C-n>` / `<C-p>` still do that on demand (`:h i_CTRL-N`).
+  -- - No automatic signature window on `(`; `<C-s>` is a keypress.
+  --
+  -- See `:h lsp-completion` and `:h vim.lsp.completion.enable()`.
+  local enable_completion = function(ev)
+    vim.lsp.completion.enable(true, ev.data.client_id, ev.buf, { autotrigger = true })
+  end
+  Config.new_autocmd('LspAttach', nil, enable_completion, 'Enable built-in LSP completion')
 end)
 
 -- Formatting =================================================================

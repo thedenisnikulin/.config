@@ -53,14 +53,18 @@ map('x', 'X', 'k', 'Extend selection up')
 -- These are not Vim defaults and are not provided by the LSP client either:
 -- - Vim's own `gd` means "go to local declaration" - a text search within the
 --   current function. That is why it never jumped into the standard library.
--- - Neovim 0.11+ does ship built-in LSP mappings, but they live under `gr`
---   (`grr` references, `gri` implementation, `grn` rename, `grt` type). In this
---   config `gr` is taken by the "replace" operator from 'mini.operators', so
---   those are shadowed - use the `<Leader>l` group for the rest.
+-- - Neovim 0.11+ does ship built-in LSP mappings, but they live under the `gr`
+--   prefix (`grr` references, `gri` implementation, `grn` rename, `grt` type).
+--   Mapping `gr` itself to an action shadows all of them, since `gr` now fires
+--   immediately instead of waiting for a second key. The `<Leader>l` group
+--   covers what is left (rename, code action, ...).
+-- - `gr` also used to be the "replace" operator from 'mini.operators'. That
+--   moved to `gR` in 'plugin/30_mini.lua' to free this key.
 --
 -- Requires an attached language server; without one they report as much.
 map('n', 'gd', vim.lsp.buf.definition, 'Goto definition')
 map('n', 'gD', vim.lsp.buf.declaration, 'Goto declaration')
+map('n', 'gr', vim.lsp.buf.references, 'Goto references')
 map('n', 'gy', vim.lsp.buf.type_definition, 'Goto type definition')
 map('n', 'gi', vim.lsp.buf.implementation, 'Goto implementation')
 
