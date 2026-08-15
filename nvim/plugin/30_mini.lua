@@ -610,17 +610,41 @@ later(function() require('mini.input').setup() end)
 -- - `dt)` - *d*elete *t*ill next closing parenthesis (`)`)
 later(function() require('mini.jump').setup() end)
 
--- Jump within visible lines to pre-defined spots via iterative label filtering.
--- Spots are computed by a configurable spotter function. Example usage:
--- - Lock eyes on desired location to jump
--- - `<CR>` - start jumping; this shows character labels over target spots
--- - Type character that appears over desired location; number of target spots
---   should be reduced
--- - Keep typing labels until target spot is unique to perform the jump
+-- Jump within visible lines to labeled spots. This is Helix's `gw`.
+--
+-- Usage:
+-- - Lock eyes on where you want to go
+-- - `gw` - labels appear over every word start
+-- - Type the two letters shown over your target
+--
+-- Three things are changed from the defaults to match Helix:
+--
+-- 1. Mapped to `gw`, not `<CR>`. The default put jumping on Enter, which meant
+--    Enter no longer moved down a line. This costs Vim's `gw` (format without
+--    moving the cursor); `gq` still formats.
+--
+-- 2. Word starts only. The default spotter is deliberately greedy - word
+--    starts *and* ends, both sides of punctuation, camelCase humps - which is
+--    more targets than Helix labels and makes the screen busy. `word_start`
+--    is the built-in spotter that matches Helix's behavior.
+--
+-- 3. `n_steps_ahead = 1` shows the whole label at once ("ab") instead of
+--    revealing it one character at a time. Note this is adaptive rather than
+--    fixed at two: labels are as short as they can be, so a screen with fewer
+--    than 27 word starts gets single letters. That is strictly fewer
+--    keystrokes, not a bug - in a normal file you will see two.
 --
 -- See also:
 -- - `:h MiniJump2d.gen_spotter` - list of available spotters
-later(function() require('mini.jump2d').setup() end)
+-- - `:h MiniJump2d.builtin_opts` - other ready-made jump modes
+later(function()
+  local jump2d = require('mini.jump2d')
+  jump2d.setup({
+    spotter = jump2d.builtin_opts.word_start.spotter,
+    view = { n_steps_ahead = 1 },
+    mappings = { start_jumping = 'gw' },
+  })
+end)
 
 -- Special key mappings. Provides helpers to map:
 -- - Multi-step actions. Apply action 1 if condition is met; else apply
