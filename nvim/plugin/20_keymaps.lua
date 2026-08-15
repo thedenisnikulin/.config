@@ -61,12 +61,22 @@ map('x', 'X', 'k', 'Extend selection up')
 -- - `gr` also used to be the "replace" operator from 'mini.operators'. That
 --   moved to `gR` in 'plugin/30_mini.lua' to free this key.
 --
+-- These go through 'mini.pick' rather than `vim.lsp.buf.*` directly. The plain
+-- functions dump multiple results into the quickfix list, which is a different
+-- UI with different keys - exactly the inconsistency Helix does not have.
+-- Routed through the picker, every one of these lands in the same window with
+-- the same `<Tab>` / `<S-Tab>` / `<Esc>` keys as every other picker.
+--
+-- A single result still jumps straight to it without showing a picker at all;
+-- the picker only appears when there is a genuine choice to make. See
+-- `:h MiniExtra.pickers.lsp()`.
+--
 -- Requires an attached language server; without one they report as much.
-map('n', 'gd', vim.lsp.buf.definition, 'Goto definition')
-map('n', 'gD', vim.lsp.buf.declaration, 'Goto declaration')
-map('n', 'gr', vim.lsp.buf.references, 'Goto references')
-map('n', 'gy', vim.lsp.buf.type_definition, 'Goto type definition')
-map('n', 'gi', vim.lsp.buf.implementation, 'Goto implementation')
+map('n', 'gd', '<Cmd>Pick lsp scope="definition"<CR>', 'Goto definition')
+map('n', 'gD', '<Cmd>Pick lsp scope="declaration"<CR>', 'Goto declaration')
+map('n', 'gr', '<Cmd>Pick lsp scope="references"<CR>', 'Goto references')
+map('n', 'gy', '<Cmd>Pick lsp scope="type_definition"<CR>', 'Goto type definition')
+map('n', 'gi', '<Cmd>Pick lsp scope="implementation"<CR>', 'Goto implementation')
 
 -- Scroll three lines at a time
 map({ 'n', 'x' }, '<C-e>', '3<C-e>', 'Scroll down')
