@@ -103,7 +103,7 @@ end)
 -- Notifications provider. Shows all kinds of notifications in the upper right
 -- corner (by default). Example usage:
 -- - `:h vim.notify()` - show notification (hides automatically)
--- - `<Leader>en` - show notification history
+-- - `<Leader>on` - show notification history
 --
 -- See also:
 -- - `:h MiniNotify.config` for some of common configuration examples.
@@ -224,11 +224,11 @@ now(function() require('mini.tabline').setup() end)
 -- Manipulate files and directories by editing text as regular buffers.
 --
 -- Example usage:
--- - `<Leader>ed` - open current working directory
--- - `<Leader>ef` - open directory of current file (needs to be present on disk)
+-- - `<Leader>e` - open current working directory
+-- - `<Leader>E` - open directory of current file (needs to be present on disk)
 --
 -- Basic navigation:
--- - `l` - go in entry at cursor: navigate into directory or open file
+-- - `l` / `<CR>` - go in entry at cursor: navigate into directory or open file
 -- - `h` - go out of focused directory
 -- - Navigate window as any regular buffer
 -- - Press `g?` inside explorer to see more mappings
@@ -273,6 +273,7 @@ now_if_args(function()
       vim.keymap.set('n', lhs, rhs, { buffer = buf, desc = desc })
     end
     map('<Esc>', function() MiniFiles.close() end, 'Close')
+    map('<CR>', function() MiniFiles.go_in() end, 'Open')
     map('<Tab>', 'j', 'Next entry')
     map('<S-Tab>', 'k', 'Previous entry')
   end
@@ -515,18 +516,27 @@ later(function() require('mini.comment').setup() end)
 -- Work with diff hunks that represent the difference between the buffer text and
 -- some reference text set by a source. Default source uses text from Git index.
 -- Also provides summary info used in developer section of 'mini.statusline'.
+--
+-- Apply/reset default to `gh` / `gH`, moved to `ga` / `gA` here to free `gh`
+-- for "goto line start" (see 'plugin/20_keymaps.lua'), same trade already
+-- made for `gr` -> `gR` ('mini.operators' replace) below.
+--
 -- Example usage:
--- - `ghip` - apply hunks (`gh`) within *i*nside *p*aragraph
--- - `gHG` - reset hunks (`gH`) from cursor until end of buffer (`G`)
--- - `ghgh` - apply (`gh`) hunk at cursor (`gh`)
--- - `gHgh` - reset (`gH`) hunk at cursor (`gh`)
+-- - `gaip` - apply hunks (`ga`) within *i*nside *p*aragraph
+-- - `gAG` - reset hunks (`gA`) from cursor until end of buffer (`G`)
+-- - `gaga` - apply (`ga`) hunk at cursor (`ga`)
+-- - `gAga` - reset (`gA`) hunk at cursor (`ga`)
 -- - `<Leader>go` - toggle overlay
 --
 -- See also:
 -- - `:h MiniDiff-overview` - overview of how module works
 -- - `:h MiniDiff-diff-summary` - available summary information
 -- - `:h MiniDiff.gen_source` - available built-in sources
-later(function() require('mini.diff').setup() end)
+later(function()
+  require('mini.diff').setup({
+    mappings = { apply = 'ga', reset = 'gA', textobject = 'ga' },
+  })
+end)
 
 -- Git integration for more straightforward Git actions based on Neovim's state.
 -- It is not meant as a fully featured Git client, only to provide helpers that

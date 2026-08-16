@@ -21,6 +21,15 @@ nmap(']p', '<Cmd>exe "iput "  . v:register<CR>', 'Paste Below')
 
 -- Many general mappings are created by 'mini.basics'. See 'plugin/30_mini.lua'
 
+-- Make bare `:new` behave like `:enew` (new empty buffer in the current
+-- window) instead of Vim's default (new empty buffer in a horizontal split).
+--
+-- `cnoreabbrev` with this `<expr>` guard is the standard way to safely
+-- override an Ex command name: it only fires when the command line is
+-- exactly `new` (not `new somefile.txt`, and not `new` appearing inside some
+-- other word), so anything more specific than the bare command still works.
+vim.cmd([[cnoreabbrev <expr> new (getcmdtype() == ':' && getcmdline() == 'new') ? 'enew' : 'new']])
+
 -- Helix leftovers ============================================================
 --
 -- This whole section exists for one reason: a year of Helix muscle memory.
@@ -74,6 +83,16 @@ map('n', 'gD', '<Cmd>Pick lsp scope="declaration"<CR>', 'Goto declaration')
 map('n', 'gr', '<Cmd>Pick lsp scope="references"<CR>', 'Goto references')
 map('n', 'gy', '<Cmd>Pick lsp scope="type_definition"<CR>', 'Goto type definition')
 map('n', 'gi', '<Cmd>Pick lsp scope="implementation"<CR>', 'Goto implementation')
+
+-- `gh` / `gl` - go to start / end of line, as in Helix.
+--
+-- Vim's own `gh` / `gH` normally start (char/line) Select mode - a lesser
+-- used feature with no Helix equivalent (Helix's own "Select mode" is what
+-- plain `v` already gets you here, see 'plugin/30_mini.lua' status line
+-- comment). Shadowing it is a deliberate trade: `0` / `$` already do this,
+-- but not under a `g`-prefixed, Select-mode-reachable key.
+map({ 'n', 'x', 's' }, 'gh', '0', 'Goto line start')
+map({ 'n', 'x', 's' }, 'gl', '$', 'Goto line end')
 
 -- Scroll three lines at a time
 map({ 'n', 'x' }, '<C-e>', '3<C-e>', 'Scroll down')
@@ -154,8 +173,6 @@ map('n', '<A-!>', ':read !', 'Insert command output below')
 -- This is used to provide 'mini.clue' with extra clues.
 -- Add an entry if you create a new group.
 Config.leader_group_clues = {
-  { mode = 'n', keys = '<Leader>b', desc = '+Buffer' },
-  { mode = 'n', keys = '<Leader>e', desc = '+Explore/Edit' },
   { mode = 'n', keys = '<Leader>f', desc = '+Find' },
   { mode = 'n', keys = '<Leader>g', desc = '+Git' },
   { mode = 'n', keys = '<Leader>l', desc = '+Language' },
@@ -183,52 +200,41 @@ local xmap_leader = function(suffix, rhs, desc)
   vim.keymap.set('x', '<Leader>' .. suffix, rhs, { desc = desc })
 end
 
--- b is for 'Buffer'. Common usage:
--- - `<Leader>bs` - create scratch (temporary) buffer
--- - `<Leader>ba` - navigate to the alternative buffer
--- - `<Leader>bw` - wipeout (fully delete) current buffer
-local new_scratch_buffer = function()
-  vim.api.nvim_win_set_buf(0, vim.api.nvim_create_buf(true, true))
-end
-
-nmap_leader('ba', '<Cmd>b#<CR>',                                 'Alternate')
-nmap_leader('bd', '<Cmd>lua MiniBufremove.delete()<CR>',         'Delete')
-nmap_leader('bD', '<Cmd>lua MiniBufremove.delete(0, true)<CR>',  'Delete!')
-nmap_leader('bs', new_scratch_buffer,                            'Scratch')
-nmap_leader('bw', '<Cmd>lua MiniBufremove.wipeout()<CR>',        'Wipeout')
-nmap_leader('bW', '<Cmd>lua MiniBufremove.wipeout(0, true)<CR>', 'Wipeout!')
+-- `b` is a single-action alias for `<Leader>fb` (buffers picker).
+--
+-- Kept flat, same reasoning as `<Leader>e` above: it used to be a group
+-- ('Buffer'), but mapping sub-keys under `b` would make mini.clue treat
+-- `<Leader>b` as ambiguous and pop up a picker instead of opening the buffer
+-- list immediately. Its old sub-mappings (`ba`, `bd`, ...) moved to the 'o'
+-- (Other) group below.
+nmap_leader('b', '<Cmd>Pick buffers<CR>', 'Buffers')
 
 -- Helix leftover: `space c` / `space C` were `:buffer-close` / `:buffer-close!`.
--- Same actions as `<Leader>bd` / `<Leader>bD` above, kept as single-key aliases.
+-- Same actions as `<Leader>od` / `<Leader>oD` below, kept as single-key aliases.
 nmap_leader('c', '<Cmd>lua MiniBufremove.delete()<CR>',         'Close buffer')
 nmap_leader('C', '<Cmd>lua MiniBufremove.delete(0, true)<CR>',  'Close buffer!')
 
--- e is for 'Explore' and 'Edit'. Common usage:
--- - `<Leader>ed` - open explorer at current working directory
--- - `<Leader>ef` - open directory of current file (needs to be present on disk)
--- - `<Leader>ei` - edit 'init.lua'
--- - All mappings that use `edit_plugin_file` - edit 'plugin/' config files
-local edit_plugin_file = function(filename)
-  return string.format('<Cmd>edit %s/plugin/%s<CR>', vim.fn.stdpath('config'), filename)
-end
-local explore_at_file = '<Cmd>lua MiniFiles.open(vim.api.nvim_buf_get_name(0))<CR>'
-local explore_quickfix = function()
-  vim.cmd(vim.fn.getqflist({ winid = true }).winid ~= 0 and 'cclose' or 'copen')
-end
-local explore_locations = function()
-  vim.cmd(vim.fn.getloclist(0, { winid = true }).winid ~= 0 and 'lclose' or 'lopen')
+-- e is for 'Explore'. Common usage:
+-- - `<Leader>e` - open explorer at current working directory
+-- - `<Leader>E` - open directory of current file (needs to be present on disk)
+--
+-- Kept flat (not a group) on purpose: mapping sub-keys under `e` would make
+-- mini.clue treat `<Leader>e` as ambiguous and pop up a picker instead of
+-- opening the explorer immediately. Config-file edit shortcuts that used to
+-- live here (`ei`, `ek`, ...) moved to the 'o' (Other) group below.
+local explore_at_file = function()
+  -- Buffer name isn't always a real path (e.g. mini.starter's buffer is
+  -- named "ministarter:/1"), so guard against passing garbage to MiniFiles.
+  local path = vim.api.nvim_buf_get_name(0)
+  if path == '' or (vim.fn.filereadable(path) == 0 and vim.fn.isdirectory(path) == 0) then
+    vim.notify('No file on disk for current buffer', vim.log.levels.WARN)
+    return
+  end
+  MiniFiles.open(path)
 end
 
-nmap_leader('ed', '<Cmd>lua MiniFiles.open()<CR>',          'Directory')
-nmap_leader('ef', explore_at_file,                          'File directory')
-nmap_leader('ei', '<Cmd>edit $MYVIMRC<CR>',                 'init.lua')
-nmap_leader('ek', edit_plugin_file('20_keymaps.lua'),       'Keymaps config')
-nmap_leader('em', edit_plugin_file('30_mini.lua'),          'MINI config')
-nmap_leader('en', '<Cmd>lua MiniNotify.show_history()<CR>', 'Notifications')
-nmap_leader('eo', edit_plugin_file('10_options.lua'),       'Options config')
-nmap_leader('ep', edit_plugin_file('40_plugins.lua'),       'Plugins config')
-nmap_leader('eq', explore_quickfix,                         'Quickfix list')
-nmap_leader('eQ', explore_locations,                        'Location list')
+nmap_leader('e', '<Cmd>lua MiniFiles.open()<CR>', 'Directory')
+nmap_leader('E', explore_at_file,                 'File directory')
 
 -- f is for 'Fuzzy Find'. Common usage:
 -- - `<Leader>ff` - find files; for best performance requires `ripgrep`
@@ -337,10 +343,48 @@ nmap_leader('mt', '<Cmd>lua MiniMap.toggle()<CR>',       'Toggle')
 -- o is for 'Other'. Common usage:
 -- - `<Leader>oz` - toggle between "zoomed" and regular view of current buffer
 -- - `<Leader>oc` - pick a colorscheme with live preview (Helix's `:theme`)
-nmap_leader('oc', '<Cmd>Pick colorschemes<CR>',            'Colorscheme')
-nmap_leader('or', '<Cmd>lua MiniMisc.resize_window()<CR>', 'Resize to default width')
-nmap_leader('ot', '<Cmd>lua MiniTrailspace.trim()<CR>',    'Trim trailspace')
-nmap_leader('oz', '<Cmd>lua MiniMisc.zoom()<CR>',          'Zoom toggle')
+-- - `<Leader>oi` - edit 'init.lua'
+-- - `<Leader>os` - create scratch (temporary) buffer
+-- - `<Leader>oa` - navigate to the alternate buffer
+-- - `<Leader>ow` - wipeout (fully delete) current buffer
+-- - All mappings that use `edit_plugin_file` - edit 'plugin/' config files
+local edit_plugin_file = function(filename)
+  return string.format('<Cmd>edit %s/plugin/%s<CR>', vim.fn.stdpath('config'), filename)
+end
+local explore_quickfix = function()
+  vim.cmd(vim.fn.getqflist({ winid = true }).winid ~= 0 and 'cclose' or 'copen')
+end
+local explore_locations = function()
+  vim.cmd(vim.fn.getloclist(0, { winid = true }).winid ~= 0 and 'lclose' or 'lopen')
+end
+local new_scratch_buffer = function()
+  vim.api.nvim_win_set_buf(0, vim.api.nvim_create_buf(true, true))
+end
+
+nmap_leader('oa', '<Cmd>b#<CR>',                                 'Alternate buffer')
+nmap_leader('oc', '<Cmd>Pick colorschemes<CR>',                  'Colorscheme')
+nmap_leader('od', '<Cmd>lua MiniBufremove.delete()<CR>',         'Delete buffer')
+nmap_leader('oD', '<Cmd>lua MiniBufremove.delete(0, true)<CR>',  'Delete buffer!')
+nmap_leader('oi', '<Cmd>edit $MYVIMRC<CR>',                      'init.lua')
+nmap_leader('ok', edit_plugin_file('20_keymaps.lua'),            'Keymaps config')
+nmap_leader('om', edit_plugin_file('30_mini.lua'),               'MINI config')
+nmap_leader('on', '<Cmd>lua MiniNotify.show_history()<CR>',      'Notifications')
+nmap_leader('oo', edit_plugin_file('10_options.lua'),            'Options config')
+nmap_leader('op', edit_plugin_file('40_plugins.lua'),            'Plugins config')
+nmap_leader('oq', explore_quickfix,                              'Quickfix list')
+nmap_leader('oQ', explore_locations,                             'Location list')
+nmap_leader('or', '<Cmd>lua MiniMisc.resize_window()<CR>',       'Resize to default width')
+nmap_leader('os', new_scratch_buffer,                            'Scratch buffer')
+nmap_leader('ot', '<Cmd>lua MiniTrailspace.trim()<CR>',          'Trim trailspace')
+nmap_leader('ow', '<Cmd>lua MiniBufremove.wipeout()<CR>',        'Wipeout buffer')
+nmap_leader('oW', '<Cmd>lua MiniBufremove.wipeout(0, true)<CR>', 'Wipeout buffer!')
+nmap_leader('oz', '<Cmd>lua MiniMisc.zoom()<CR>',                'Zoom toggle')
+
+-- `/` is a single-action alias for `<Leader>fg`, as in Helix's `space /`.
+nmap_leader('/', '<Cmd>Pick grep_live<CR>', 'Grep live')
+
+-- `'` is a single-action alias for `<Leader>fr`, as in Helix's `space '`.
+nmap_leader("'", '<Cmd>Pick resume<CR>', 'Resume picker')
 
 -- s is for 'Symbols', as in Helix: `space s` for this file, `space S` for the
 -- whole workspace. These are single actions, not groups.

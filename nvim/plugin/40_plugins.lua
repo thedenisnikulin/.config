@@ -259,16 +259,26 @@ later(function()
   map('x', '<Leader>xs', mc.splitCursors, 'Split selection on separator')
 
   -- Only in effect while there is more than one cursor
+  -- NOTE: this `layer` setter takes an options TABLE as its fourth argument,
+  -- unlike the `map` helper above which takes a plain description string.
+  -- Passing a string here errors out when the layer activates.
   mc.addKeymapLayer(function(layer)
-    layer(nx, '<Left>', mc.prevCursor, 'Previous cursor')
-    layer(nx, '<Right>', mc.nextCursor, 'Next cursor')
-    layer('n', '<Esc>', function()
+    layer(nx, '<Left>', mc.prevCursor, { desc = 'Previous cursor' })
+    layer(nx, '<Right>', mc.nextCursor, { desc = 'Next cursor' })
+
+    -- Collapse back to a single cursor. `,` is Helix's key for this, and it is
+    -- safe to use precisely because this is a layer: these mappings exist only
+    -- while more than one cursor is alive. The rest of the time `,` is still
+    -- Vim's "repeat `f`/`t` backwards" - nothing is shadowed.
+    local collapse = function()
       if mc.cursorsEnabled() then
         mc.clearCursors()
       else
         mc.enableCursors()
       end
-    end, 'Collapse to one cursor')
+    end
+    layer('n', '<Esc>', collapse, { desc = 'Collapse to one cursor' })
+    layer('n', ',', collapse, { desc = 'Collapse to one cursor' })
   end)
 end)
 
@@ -338,3 +348,17 @@ end)
 --   -- Enable only one
 --   vim.cmd('color everforest')
 -- end)
+
+-- Installed (not activated - active theme stays the 'mini.hues' rebuild from
+-- 'plugin/30_mini.lua'). `<Leader>oc` previews and can switch to either live.
+--
+-- 'tokyonight.nvim' ships four styles; 'tokyonight-night' is the darkest one
+-- (there's no variant literally named "darkest").
+Config.now(function()
+  add({
+    'https://github.com/folke/tokyonight.nvim',
+    -- Repo is named "neovim" upstream; renamed locally so it doesn't show up
+    -- as a plugin literally called "neovim" in the pack directory.
+    { src = 'https://github.com/rose-pine/neovim', name = 'rose-pine.nvim' },
+  })
+end)
