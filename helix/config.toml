@@ -1,6 +1,7 @@
 # theme = "gruvbox_light_soft"
 # theme = "rose_pine"
 theme = "kinda_nvim_patched"
+# theme = "passarinho"
 # theme = "material_deep_ocean"
 # theme = "material_oceanic"
 # theme = "noctis"
@@ -12,16 +13,14 @@ theme = "kinda_nvim_patched"
 [editor]
 line-number = "relative"
 cursorline = true
-# rulers = [80]
 rulers = [120]
 text-width = 120
 bufferline = "always"
-# bufferline = "multiple"
-# popup-border = "none"
 popup-border = "all"
-shell = ["bash", "-c"]
-# shell = ["fish", "-c"]
-# shell = ["sh", "-c"]
+shell = ["zsh", "-c"]
+
+[editor.lsp]
+display-inlay-hints = false
 
 [editor.cursor-shape]
 insert = "block"
@@ -34,7 +33,7 @@ left = ["mode", "spinner", "read-only-indicator", "file-modification-indicator"]
 center = ["file-name", "spacer", "version-control"]
 right = ["diagnostics", "selections", "position", "position-percentage", "file-encoding", "file-line-ending", "file-type"]
 mode.normal = "N („• ᴗ •„)"
-mode.insert = "I ｡ﾟ･ (>﹏<) ･ﾟ｡"
+mode.insert = "I ⊹₊ (>﹏<) ₊⊹"
 mode.select = "S (｡•̀ᴗ-)✧☆*:・ﾟ"
 
 [editor.inline-diagnostics]
@@ -57,10 +56,37 @@ c = ":buffer-close"
 C = ":buffer-close!"
 f = "file_picker_in_current_directory"
 F = "file_picker"
-m = ':set soft-wrap.wrap-at-text-width true'
 
+# copy current file/dir
+[keys.normal.space."`"]
+"\t" = "@ File path"
+"f" = ":sh echo -n %{buffer_name}:%{cursor_line} | pbcopy"
+"d" = ":sh dirname %{buffer_name}:%{cursor_line} | pbcopy"
+
+# --------------------------------
+# ----------- CONFIG -------------
+# --------------------------------
+[keys.normal.space."\\"]
+"\t" = "@ Config"
+r = [":config-reload", ":lsp-restart", ":reload-all"]
+i = ":toggle lsp.display-inlay-hints"
+
+# --------------------------------
+# ------------- GIT --------------
+# --------------------------------
 [keys.normal.space.B]
-b = ":sh git blame -L %{cursor_line},%{cursor_line} %{buffer_name}" # Show blame info for current line
+"\t" = "@ Git"
+b = ":sh git blame -L %{cursor_line},%{cursor_line} %{buffer_name}" #  `| tee >(pbcopy)`
+B = ":sh git blame -L %{cursor_line},%{cursor_line} %{buffer_name} | awk '{ print $1 }' | read hash; echo \"$(git config --get remote.origin.url | sed \"s/\\.git$//\")/-/commit/$hash\" | xargs open"
+
+# --------------------------------
+# ------------ VIEW --------------
+# --------------------------------
+[keys.normal.z]
+s = ":toggle soft-wrap.enable"
+
+[keys.normal.space.n]
+e = ":pipe nu --stdin -c '^nu -c ($in | str trim)'"
 
 [keys.normal]
 C-e = ["scroll_down","scroll_down","scroll_down"]
@@ -75,9 +101,32 @@ C-y = ["scroll_up", "scroll_up", "scroll_up"]
 'A-]' = [":buffer-next"]
 x = "select_line_below"
 X = "select_line_above"
+'*' = ["search_selection"]
+'A-*' = ["search_selection_detect_word_boundaries"]
+'C-a' = "@miw:pipe ~/dev/cycle/cycle<ret>"
+'C-x' = "@miw:pipe ~/dev/cycle/cycle --prev<ret>"
+'-' = ["copy_between_registers"]
 
 [keys.select]
 'A-w' = ["extend_next_sub_word_start"]
 'A-e' = ["extend_next_sub_word_end"]
 'A-b' = ["extend_prev_sub_word_start"]
+'C-a' = "@miw:pipe cycle<ret>"
+'C-x' = "@miw:pipe cycle --prev<ret>"
+
+# --------------------------------
+# ----------- BUFFERS ------------
+# --------------------------------
+
+[keys.normal.g]
+n = ["no_op"]
+p = ["no_op"]
+
+[keys.normal."["]
+"[" = ":buffer-previous"
+[keys.normal."]"]
+"]" = ":buffer-next"
+[keys.normal."\\"]
+"\\" = ":buffer-close"
+
 
